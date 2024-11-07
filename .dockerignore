@@ -1,0 +1,3 @@
+**/*.md
+depot.json
+Dockerfile*
