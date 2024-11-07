@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7.0
+
 FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 
 WORKDIR /app
@@ -26,6 +28,8 @@ FROM debian:bookworm-slim AS runtime
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/hello_rust /usr/local/bin
+COPY --from=builder /app/target/release/hello_rust /app/
 
-CMD ["/usr/local/bin/hello_rust"]
+EXPOSE 8000
+
+CMD ["/app/hello_rust"]
