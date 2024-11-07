@@ -1,0 +1,15 @@
+FROM rust:latest
+
+WORKDIR /usr/src/app
+
+COPY Cargo.toml Cargo.lock ./
+
+RUN mkdir src
+
+COPY src/ ./src/
+
+RUN cargo build --release
+
+EXPOSE 8000
+
+CMD ["./target/release/hello-world"]
