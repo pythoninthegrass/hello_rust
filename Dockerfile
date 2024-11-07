@@ -63,7 +63,10 @@ ARG APP_NAME=hello_rust
 WORKDIR /app
 
 COPY --from=builder /app/${APP_NAME} /app/
+COPY --from=builder /app/src/static /app/src/static
 
-EXPOSE 8000
+ARG ROCKET_PORT=8000
+ENV ROCKET_PORT=${ROCKET_PORT}
+EXPOSE ${ROCKET_PORT}
 
 CMD ["/app/hello_rust"]
