@@ -19,23 +19,23 @@ install:
 
 source:
     FROM +install
-    COPY --keep-ts Cargo.toml Cargo.lock .
-    COPY --keep-ts --dir src .
+    COPY --keep-ts --dir src Cargo.toml Cargo.lock .
+    SAVE ARTIFACT ./src/static static
 
 build:
     FROM +source
     DO rust+CARGO \
         --args="build --release --bin ${APP_NAME}" \
         --output="release/[^/\.]+"
-    SAVE ARTIFACT ./target/release/*
+    SAVE ARTIFACT ./target/release/* $APP_NAME
 
 docker:
     FROM debian:bookworm-slim
+    WORKDIR /app
     COPY +build/$APP_NAME $APP_NAME
-    COPY +build/src .
+    COPY +source/static static
     ENV ROCKET_PORT=8000
     EXPOSE $ROCKET_PORT
-    WORKDIR /app
     ENTRYPOINT ./$APP_NAME
     ARG TAG="latest"
     SAVE IMAGE --push "${REGISTRY}/${ORGANIZATION}/${REPOSITORY}:${TAG}"
