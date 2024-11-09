@@ -25,7 +25,27 @@ docker run --name=hello-rust -it --rm \
     hello-rust
 ```
 
-# Further Reading
+## Earthfile
+
+```bash
+# run a single target
+earthly +build
+
+# debug the build
+earthly -i +build
+
+# execute all targets needed to build the image
+earthly +docker
+```
+
+## TODO
+
+* earthly
+  * enable push to registry
+  * git credentials for private repo
+  * secrets / .env file
+
+## Further Reading
 
 * [Making Your Docker Builds Faster with cargo-chef - Earthly Blog](https://earthly.dev/blog/cargo-chef/)
 * [Tips For Faster Rust Compile Times | corrode Rust Consulting](https://corrode.dev/blog/tips-for-faster-rust-compile-times/)
