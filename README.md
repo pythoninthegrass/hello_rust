@@ -40,6 +40,10 @@ earthly +docker
 
 ## TODO
 
+* benchmarks ([hyperfine](https://github.com/sharkdp/hyperfine?tab=readme-ov-file#warmup-runs-and-preparation-commands))
+  * cargo
+  * docker
+  * earthfile
 * earthly
   * enable push to registry
   * git credentials for private repo
