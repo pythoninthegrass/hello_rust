@@ -1,0 +1,119 @@
+version: "3.0"
+
+set: ['e', 'u', 'pipefail']
+shopt: ['globstar']
+
+dotenv: ['.env']
+
+env:
+  REGISTRY: "ghcr.io"
+  ORGANIZATION: "pythoninthegrass"
+  REPOSITORY: "hello_rust"
+  TAG: "latest"
+
+vars:
+  BENCHMARK_DIR: "{{.ROOT_DIR}}/benchmarks"
+  WARMUP_RUNS: 1
+  BENCHMARK_RUNS: 3 # default: 10
+  IMAGE_NAME: "{{.REGISTRY}}/{{.ORGANIZATION}}/{{.REPOSITORY}}:{{.TAG}}"
+
+tasks:
+  default:
+    desc: "Default task"
+    cmds:
+      - task --list
+
+  install-devbox:
+    desc: "Install devbox"
+    cmds:
+      - |
+        if ! [[ $(command -v devbox 2>/dev/null) ]]; then
+          curl -fsSL https://get.jetify.com/devbox | bash
+        fi
+    run: once
+    silent: true
+
+  install:
+    desc: "Install project dependencies"
+    deps: ["install-devbox"]
+    cmds:
+      - devbox install
+
+  pre-commit:
+    desc: "Run pre-commit hooks"
+    cmds:
+      - pre-commit run --all-files
+
+  _docker_bench:
+    internal: true
+    desc: Run Docker build benchmark
+    cmds:
+      - mkdir -p {{.BENCHMARK_DIR}}
+      - |
+        hyperfine \
+          --prepare 'docker rmi {{.IMAGE_NAME}} || true' \
+          --warmup {{.WARMUP_RUNS}} \
+          --runs {{.BENCHMARK_RUNS}} \
+          'docker buildx build --platform linux/arm64 --build-arg PROFILE=release -t {{.IMAGE_NAME}} .' \
+          --export-markdown {{.BENCHMARK_DIR}}/docker_bench.md
+
+  _earthly_bench:
+    internal: true
+    desc: Run Earthly build benchmark
+    cmds:
+      - mkdir -p {{.BENCHMARK_DIR}}
+      - |
+        hyperfine \
+          --prepare 'docker rmi {{.IMAGE_NAME}} || true' \
+          --warmup {{.WARMUP_RUNS}} \
+          --runs {{.BENCHMARK_RUNS}} \
+          'earthly +build' \
+          --export-markdown {{.BENCHMARK_DIR}}/earthly_bench.md
+
+  _combine_results:
+    internal: false
+    desc: Combine benchmark results from multiple markdown files
+    vars:
+      BENCH_FILES:
+        sh: find "{{.BENCHMARK_DIR}}" -type f -name "*bench.md"
+      FIRST_FILE:
+        sh: find "{{.BENCHMARK_DIR}}" -type f -name "*bench.md" | head -n1
+      FILENAME: "results.md"
+    dir: "{{.BENCHMARK_DIR}}"
+    cmds:
+      - |
+        # Take identical headers from any benchmark file and combine results
+        {
+          head -n2 docker_bench.md
+          tail -n +3 docker_bench.md
+          tail -n +3 earthly_bench.md
+        } > results.md
+    sources:
+      - ./**/docker_bench.md
+      - ./**/earthly_bench.md
+    generates:
+      - ./**/results*.md
+
+  benchmark:
+    desc: "Run build benchmarks and combine results"
+    cmds:
+      - task: _earthly_bench
+      - task: _docker_bench
+      - task: _combine_results
+    env:
+      DOCKER_BUILDKIT: "1"
+
+  lint:
+    desc: "Run linters"
+    cmds:
+      - <TODO>
+
+  format:
+    desc: "Run formatters"
+    cmds:
+      - <TODO>
+
+  test:
+    desc: "Run tests"
+    cmds:
+      - <TODO>
