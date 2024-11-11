@@ -6,12 +6,17 @@ WORKDIR /app
 
 ENV PKG_CONFIG_SYSROOT_DIR=/
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+ENV CARGO_INCREMENTAL=0
+ENV CARGO_BUILD_JOBS=12
+ENV RUSTFLAGS="-Awarnings -C target-feature=-crt-static -C link-arg=-fuse-ld=mold -C link-arg=-s"
 
 RUN apk add --no-cache \
     bash \
     build-base \
+    clang \
     g++ \
     git \
+    mold \
     musl-dev \
     openssl-dev \
     openssl-libs-static \
@@ -35,7 +40,6 @@ COPY --from=planner /app/recipe.json recipe.json
 ARG PROFILE=${PROFILE:-dev}
 ARG APP_NAME=hello_rust
 ARG CARGO_TARGET_DIR=/app/target/${PROFILE}
-ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
 # Cook dependencies for all targets
 RUN cargo chef cook --recipe-path recipe.json --profile ${PROFILE} --zigbuild \

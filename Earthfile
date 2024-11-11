@@ -24,6 +24,7 @@ install:
 		git \
 		libtool \
 		make \
+		mold \
 		musl-dev \
 		openssl-dev \
 		openssl-libs-static \
@@ -31,7 +32,12 @@ install:
 		pkgconfig \
 		zig
 
+	ENV PKG_CONFIG_SYSROOT_DIR=/
 	ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+	ENV CARGO_INCREMENTAL=0
+	ENV CARGO_BUILD_JOBS=12
+	ENV RUSTFLAGS="-Awarnings -C target-feature=-crt-static -C link-arg=-fuse-ld=mold -C link-arg=-s"
+
 	RUN cargo install --locked cargo-zigbuild
 
 source:
@@ -45,8 +51,6 @@ build:
 	ARG TARGETPLATFORM
 	ARG PROFILE=$PROFILE
 
-	ARG CARGO_INCREMENTAL=0
-	ARG RUSTFLAGS="-Awarnings -C target-feature=-crt-static -C link-arg=-s"
 	ARG RUST_BACKTRACE=full
 
 	ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt

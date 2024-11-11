@@ -13,7 +13,7 @@ env:
 
 vars:
   BENCHMARK_DIR: "{{.ROOT_DIR}}/benchmarks"
-  WARMUP_RUNS: 1
+  WARMUP_RUNS: 2
   BENCHMARK_RUNS: 3 # default: 10
   IMAGE_NAME: "{{.REGISTRY}}/{{.ORGANIZATION}}/{{.REPOSITORY}}:{{.TAG}}"
 
@@ -49,29 +49,39 @@ tasks:
     desc: Run Docker build benchmark
     cmds:
       - mkdir -p {{.BENCHMARK_DIR}}
+      - docker rmi {{.IMAGE_NAME}} || true
       - |
         hyperfine \
-          --prepare 'docker rmi {{.IMAGE_NAME}} || true' \
+          --prepare 'touch src/main.rs' \
           --warmup {{.WARMUP_RUNS}} \
           --runs {{.BENCHMARK_RUNS}} \
-          'docker buildx build --platform linux/arm64 --build-arg PROFILE=release -t {{.IMAGE_NAME}} .' \
+          'docker buildx build --platform {{.PLATFORM}} --build-arg PROFILE=release -t {{.IMAGE_NAME}} .' \
           --export-markdown {{.BENCHMARK_DIR}}/docker_bench.md
+    vars:
+      PLATFORM:
+        sh: |
+          if [[ $(arch) = 'amd64' ]]; then
+            echo "linux/amd64"
+          elif [[ $(arch) = 'arm64' ]]; then
+            echo "linux/arm64"
+          fi
 
   _earthly_bench:
     internal: true
     desc: Run Earthly build benchmark
     cmds:
       - mkdir -p {{.BENCHMARK_DIR}}
+      - docker rmi {{.IMAGE_NAME}} || true
       - |
         hyperfine \
-          --prepare 'docker rmi {{.IMAGE_NAME}} || true' \
+          --prepare 'touch src/main.rs' \
           --warmup {{.WARMUP_RUNS}} \
           --runs {{.BENCHMARK_RUNS}} \
           'earthly +build' \
           --export-markdown {{.BENCHMARK_DIR}}/earthly_bench.md
 
   _combine_results:
-    internal: false
+    internal: true
     desc: Combine benchmark results from multiple markdown files
     vars:
       BENCH_FILES:
@@ -97,8 +107,8 @@ tasks:
   benchmark:
     desc: "Run build benchmarks and combine results"
     cmds:
-      - task: _earthly_bench
       - task: _docker_bench
+      - task: _earthly_bench
       - task: _combine_results
     env:
       DOCKER_BUILDKIT: "1"

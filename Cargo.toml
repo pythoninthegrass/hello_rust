@@ -6,3 +6,8 @@ edition = "2021"
 [dependencies]
 dotenvy = "0.15.7"
 rocket = "0.5.1"
+
+[profile.release]
+debug = 0
+strip = "debuginfo"
+# split-debuginfo = "unpacked"  # default on mac, comment out `strip` and uncomment this line for linux
