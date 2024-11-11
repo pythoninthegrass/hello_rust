@@ -36,17 +36,44 @@ earthly -i +build
 
 # execute all targets needed to build the image
 earthly +docker
+
+# build for arm64 and amd64
+earthly +all
+
+# push to registry
+earthly --push +<target> 
+
+# interactive shell
+earthly --interactive +<target>
+```
+
+## Benchmarks
+
+```bash
+# install hyperfine
+brew install hyperfine
+
+# run benchmarks (native arch)
+hyperfine \
+    --prepare 'docker rmi ghcr.io/pythoninthegrass/hello_rust || true' \
+    --warmup 1 \
+    --runs 2 \
+    'earthly +build'
+    --export-markdown earthly_bench.md
+
+# run docker and earthly benchmarks via task
+task benchmark
 ```
 
 ## TODO
 
 * benchmarks ([hyperfine](https://github.com/sharkdp/hyperfine?tab=readme-ov-file#warmup-runs-and-preparation-commands))
   * cargo
-  * docker
-  * earthfile
+  * ~~docker~~
+  * ~~earthfile~~
 * earthly
-  * enable push to registry
-  * git credentials for private repo
+  * ~~enable push to registry~~
+  * ~~git credentials for private repo~~
   * secrets / .env file
 
 ## Further Reading
