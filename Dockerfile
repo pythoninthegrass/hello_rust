@@ -1,8 +1,11 @@
 # syntax=docker/dockerfile:1.7.0
 
-FROM rust:alpine3.20 AS chef
+FROM --platform=$BUILDPLATFORM rust:alpine3.20 AS chef
 
 WORKDIR /app
+
+ENV PKG_CONFIG_SYSROOT_DIR=/
+ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
 RUN apk add --no-cache \
     bash \
@@ -15,41 +18,46 @@ RUN apk add --no-cache \
     perl \
     zig
 
-ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
-
 RUN cargo install --locked cargo-zigbuild cargo-chef
+RUN rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
 
 FROM chef AS planner
 
 COPY . .
-
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 
 COPY --from=planner /app/recipe.json recipe.json
 
-RUN cargo chef cook --release --recipe-path recipe.json --target x86_64-unknown-linux-musl
-
-COPY . .
-
-ARG APP_NAME=hello_rust
-
 # https://doc.rust-lang.org/cargo/reference/profiles.html
 # 4 built-in profiles: dev, release, test, and bench
 ARG PROFILE=${PROFILE:-dev}
-
+ARG APP_NAME=hello_rust
 ARG CARGO_TARGET_DIR=/app/target/${PROFILE}
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
-# Build for musl target
+# Cook dependencies for all targets
+RUN cargo chef cook --recipe-path recipe.json --profile ${PROFILE} --zigbuild \
+    --target x86_64-unknown-linux-musl \
+    --target aarch64-unknown-linux-musl
+
+COPY . .
+
+# Build for all targets using zigbuild
 RUN <<EOF
 #!/usr/bin/env bash
-cargo build --profile ${PROFILE} --target x86_64-unknown-linux-musl --bin ${APP_NAME}
+cargo zigbuild --profile ${PROFILE} \
+    --target x86_64-unknown-linux-musl \
+    --target aarch64-unknown-linux-musl
+
+mkdir -p /app/linux
 if [ "${PROFILE}" = "dev" ]; then
-    mv ${CARGO_TARGET_DIR}/x86_64-unknown-linux-musl/debug/${APP_NAME} /app/
+    cp ${CARGO_TARGET_DIR}/x86_64-unknown-linux-musl/debug/${APP_NAME} /app/linux/amd64
+    cp ${CARGO_TARGET_DIR}/aarch64-unknown-linux-musl/debug/${APP_NAME} /app/linux/arm64
 elif [ "${PROFILE}" = "release" ]; then
-    mv ${CARGO_TARGET_DIR}/x86_64-unknown-linux-musl/release/${APP_NAME} /app/
+    cp ${CARGO_TARGET_DIR}/x86_64-unknown-linux-musl/release/${APP_NAME} /app/linux/amd64
+    cp ${CARGO_TARGET_DIR}/aarch64-unknown-linux-musl/release/${APP_NAME} /app/linux/arm64
 else
     echo "Unknown profile: ${PROFILE}"
     exit 1
@@ -58,12 +66,11 @@ EOF
 
 FROM alpine:3.20 AS runtime
 
-ARG APP_NAME=hello_rust
-
 WORKDIR /app
 
-COPY --from=builder /app/${APP_NAME} /app/
-COPY --from=builder /app/src/static /app/src/static
+ARG TARGETPLATFORM
+COPY --from=builder /app/linux/${TARGETPLATFORM#linux/} /app/hello_rust
+COPY --from=builder /app/src/static /app/static
 
 ARG ROCKET_PORT=8000
 ENV ROCKET_PORT=${ROCKET_PORT}
