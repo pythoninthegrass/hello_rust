@@ -1,0 +1,95 @@
+version: "3.0"
+
+set: ['e', 'u', 'pipefail']
+shopt: ['globstar']
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  CC: sccache /usr/bin/gcc
+  CXX: sccache /usr/bin/g++
+  RUSTFLAGS: "-Awarnings -C target-feature=-crt-static -C link-arg=-s"
+  RUSTC_WRAPPER: sccache
+  SCCACHE_CACHE_SIZE: 26843545600
+
+tasks:
+  rustup:
+    desc: "Install rustup"
+    run: once
+    cmds:
+      - curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+  sccache:
+    desc: "Install sccache"
+    deps:
+      - rustup
+    run: once
+    cmds:
+      - |
+        if [[ $(command -v sccache 2&>/dev/null; echo $?) -ne 0 ]]; then
+          export PATH=$HOME/.cargo/bin:$PATH
+          cargo install sccache --locked
+        else
+          echo "sccache is already installed"
+        fi
+    silent: true
+
+  install:
+    desc: "Install rustup, cargo, and sccache"
+    run: once
+    deps:
+      - rustup
+      - sccache
+
+  build:
+    desc: "Build the project"
+    deps:
+      - sccache
+    cmds:
+      - cargo clean
+      - cargo build --verbose
+
+  build-and-test:
+    desc: "Build and test the project"
+    deps:
+      - build
+    cmds:
+      - cargo test --verbose
+
+  release:
+    desc: "Build the release binaries"
+    deps:
+      - sccache
+    cmds:
+      - cargo clean
+      - cargo build --release
+
+  run:
+    desc: "Run the project"
+    cmds:
+      - cargo run
+
+  latest-deps:
+    desc: "Update dependencies"
+    deps:
+      - install
+    cmds:
+      - rustup update stable && rustup default stable
+      - cargo update --verbose
+      - cargo build --verbose
+      - cargo test --verbose
+
+  lint:
+    desc: "Run linter"
+    cmds:
+      - cargo clippy
+
+  format:
+    desc: "Run formatter"
+    cmds:
+      - cargo fmt
+
+  test:
+    desc: "Run tests"
+    cmds:
+      - cargo test

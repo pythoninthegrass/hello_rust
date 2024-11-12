@@ -17,6 +17,10 @@ vars:
   BENCHMARK_RUNS: 3 # default: 10
   IMAGE_NAME: "{{.REGISTRY}}/{{.ORGANIZATION}}/{{.REPOSITORY}}:{{.TAG}}"
 
+includes:
+  cargo:
+    taskfile: ./taskfiles/cargo.yml
+
 tasks:
   default:
     desc: "Default task"
@@ -112,18 +116,3 @@ tasks:
       - task: _combine_results
     env:
       DOCKER_BUILDKIT: "1"
-
-  lint:
-    desc: "Run linters"
-    cmds:
-      - <TODO>
-
-  format:
-    desc: "Run formatters"
-    cmds:
-      - <TODO>
-
-  test:
-    desc: "Run tests"
-    cmds:
-      - <TODO>
