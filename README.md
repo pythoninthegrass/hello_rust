@@ -78,6 +78,10 @@ task benchmark
 
 ## Further Reading
 
-* [Making Your Docker Builds Faster with cargo-chef - Earthly Blog](https://earthly.dev/blog/cargo-chef/)
 * [Tips For Faster Rust Compile Times | corrode Rust Consulting](https://corrode.dev/blog/tips-for-faster-rust-compile-times/)
+* [Making Your Docker Builds Faster with cargo-chef - Earthly Blog](https://earthly.dev/blog/cargo-chef/)
 * [Fast multi-arch Docker build for Rust projects :: vnotes](https://vnotes.pages.dev/fast-multi-arch-docker-for-rust/)
+* [Kobzol/cargo-wizard: Cargo subcommand for configuring Cargo projects for best performance.](https://github.com/Kobzol/cargo-wizard?tab=readme-ov-file#usage)
+* [Speeding up the Rust edit-build-run cycle | David Lattimore](https://davidlattimore.github.io/posts/2024/02/04/speeding-up-the-rust-edit-build-run-cycle.html)
+* [How-to compile rust faster - Rust.Careers Rust Blog](https://blog.rust.careers/post/compile_rust_faster/)
+* [Accelerating Rust compilation times: Dynamic linking, code generation and cache](https://nicoan.github.io/posts/accelerating_compile_times/)
