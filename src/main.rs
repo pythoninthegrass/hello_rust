@@ -1,4 +1,5 @@
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 use rocket::fs::FileServer;
 use rocket::response::content;
 use std::path::Path;
